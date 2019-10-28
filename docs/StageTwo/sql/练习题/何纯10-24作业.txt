@@ -1,0 +1,78 @@
+-- 1、查询两门以上不及格课程的同学的学号及其平均成绩
+SELECT sno,AVG(score) from scores 
+WHERE sno IN
+(SELECT sno FROM scores GROUP BY sno HAVING count(1)>2)
+ GROUP BY sno 
+;
+-- 2、查询没有学全所有课的同学的学号、姓名；
+-- SELECT * from scores GROUP BY sno,cno
+SELECT sno,sname from student s1 WHERE (
+	EXISTS (SELECT cno FROM course c1 WHERE NOT EXISTS(
+			SELECT cno,sno FROM scores sc WHERE sc.sno = s1.sno AND sc.cno = c1.cno
+		)
+	)
+);
+
+-- 3、查询至少学过学号为“s001”同学所有课的其他同学学号和姓名；
+
+SELECT sno FROM scores sc1 WHERE NOT EXISTS(
+		SELECT cno from scores sc2 WHERE sno = "s001" and sc2.cno = sc1.cno
+	);
+
+SELECT sno,sname from student s WHERE NOT EXISTS(
+	SELECT sno FROM scores sc1 WHERE NOT EXISTS(
+		SELECT cno from scores sc2 WHERE sno = "s001" and sc2.cno = sc1.cno
+	) AND s.sno = sc1.sno
+) AND EXISTS( SELECT sno FROM scores sc3 where sc3.sno = s.sno);
+
+-- 4、查询所有的课程成绩小于60 分的同学的学号、姓名；
+-- 查询所有的课程成绩小于60 分的同学的学号
+SELECT sno,sname FROM student s WHERE NOT EXISTS(
+	SELECT sno from scores scs WHERE score >=60 AND scs.sno = s.sno
+) AND EXISTS(SELECT sno from scores scs2 WHERE scs2.sno = s.sno);
+
+
+
+-- 5、查询课程编号为c001 且课程成绩在80 分以上的学生的学号和姓名；
+-- 查询课程编号为c001 且课程成绩在80 分以上的学生的学号
+
+SELECT sname,sno from student s WHERE EXISTS (
+	SELECT 1 from scores sc WHERE sc.cno = "c001" AND sc.score > 80 AND sc.sno = s.sno
+);
+
+-- 6、查询出只选修了一门课程的全部学生的学号和姓名
+SELECT sno,sname FROM student WHERE EXISTS
+(SELECT sno FROM scores WHERE student.sno = scores.sno GROUP BY sno HAVING COUNT(1) = 1);
+
+-- 7、查询课程名称为“Oracle”，且分数低于60 的学生姓名
+SELECT sname FROM student WHERE EXISTS(
+	SELECT 1 FROM scores WHERE EXISTS(
+		SELECT 1 FROM course WHERE course.cname = "Oracle" AND scores.cno = course.cno
+	) AND scores.score < 60 AND student.sno = scores.sno
+)
+-- 8、查询任何一门课程成绩在80 分以上的姓名；
+SELECT sname FROM student WHERE EXISTS(
+SELECT 1 FROM scores WHERE scores.score > 80 AND student.sno = scores.sno
+);
+
+-- 9、删除学习“谌燕”老师课的SC 表记录；
+
+DELETE FROM scores WHERE EXISTS(
+	SELECT 1 FROM course WHERE EXISTS(
+	SELECT 1 FROM  teacher WHERE teacher.tname = "谌燕" AND course.tno = teacher.tno 
+	) WHERE scores.cno = course.cno
+);
+
+-- 10、查看学生张三参加考试的全部科目的编号和对应名称，相同的科目只显示一次。
+SELECT cno,cname FROM course WHERE EXISTS(
+	SELECT 1 FROM scores WHERE scores.cno = course.cno AND EXISTS(
+		SELECT 1 FROM student WHERE scores.sno = student.sno AND student.sname = "张三"
+	) AND course.cno = scores.cno
+);
+
+SELECT * FROM scores ORDER BY sno,cno;
+SELECT * FROM teacher WHERE EXISTS (
+	SELECT 1 FROM student WHERE teacher.tname IN ("谌燕")
+);
+-- 
+-- 抽奖活动，上千万人参与，随机产生号牌，不重复，全部派发，随机全部不重复

@@ -1,0 +1,61 @@
+-- 1、查询两门以上不及格课程的同学的学号及其平均成绩
+-- 查询两门以上不及格课程的同学的学号
+SELECT sno FROM sc WHERE score<60 GROUP BY sno HAVING COUNT(DISTINCT cno)>2;
+
+SELECT sno,AVG(score) FROM sc WHERE sno IN
+(SELECT sno FROM sc WHERE score<60 GROUP BY sno HAVING COUNT(DISTINCT cno)>2) GROUP BY sno;
+
+-- 2、查询没有学全所有课的同学的学号、姓名；
+-- 查询没有学全所有课的同学的学号
+SELECT sno,COUNT(DISTINCT cno) FROM sc GROUP BY sno HAVING COUNT(DISTINCT cno)<(SELECT COUNT(*) FROM course);
+
+SELECT sno,sname FROM student WHERE sno NOT IN(
+SELECT sno FROM sc GROUP BY sno HAVING COUNT(DISTINCT cno)=(SELECT COUNT(*) FROM course));
+
+-- 3、查询至少学过学号为“s001”同学所有课的其他同学学号和姓名；
+-- 查询s001学的课程
+SELECT * FROM sc WHERE sno="s001";
+-- 查询至少学过学号为“s001”同学所有课的其他同学学号
+SELECT sno FROM sc WHERE cno IN (SELECT cno FROM sc WHERE sno="s001") AND sno!="s001"
+GROUP BY sno HAVING COUNT(DISTINCT cno)=(SELECT COUNT(DISTINCT cno) FROM sc WHERE sno="s001");
+
+
+SELECT sno,sname FROM student WHERE sno IN(
+SELECT sno FROM sc WHERE cno IN (SELECT cno FROM sc WHERE sno="s001") AND sno!="s001"
+GROUP BY sno HAVING COUNT(DISTINCT cno)=(SELECT COUNT(DISTINCT cno) FROM sc WHERE sno="s001"));
+
+-- 4、查询所有的课程成绩小于60 分的同学的学号、姓名；
+-- 查询所有的课程成绩小于60 分的同学的学号
+SELECT sno FROM sc GROUP BY sno HAVING MAX(score)<60;
+
+SELECT sno,sname FROM student WHERE sno IN (
+SELECT sno FROM sc GROUP BY sno HAVING MAX(score)<60);
+-- 5、查询课程编号为c001 且课程成绩在80 分以上的学生的学号和姓名;
+SELECT sno,sname FROM student WHERE sno IN(
+SELECT sno FROM sc WHERE cno="c001" AND score>80);
+-- 6、查询出只选修了一门课程的全部学生的学号和姓名
+SELECT sno,sname FROM student WHERE sno IN(
+SELECT sno FROM sc GROUP BY sno HAVING COUNT(DISTINCT cno)=1);
+
+-- 7、查询课程名称为“Oracle”，且分数低于60 的学生姓名
+-- 查询课程名称为“Oracle”编号
+SELECT cno FROM course WHERE cname="Oracle";
+
+
+SELECT sno,sname FROM student WHERE sno IN(
+SELECT sno FROM sc WHERE cno=(SELECT cno FROM course WHERE cname="Oracle") AND score<60);
+
+
+-- 8、查询任何一门课程成绩在80 分以上的姓名；
+SELECT sno,sname FROM student WHERE sno IN (
+SELECT sno FROM sc GROUP BY sno HAVING MAX(score)>80);
+
+-- 9、删除学习“谌燕”老师课的SC 表记录；
+DELETE FROM sc WHERE cno IN(
+SELECT cno FROM course WHERE tno=(
+SELECT tno FROM teacher WHERE tname="谌燕"));
+
+-- 10、查看学生张三参加考试的全部科目的编号和对应名称，相同的科目只显示一次。
+SELECT cno,cname FROM course WHERE cno IN(
+SELECT cno FROM sc WHERE sno=(
+SELECT sno FROM student WHERE sname="张三"));
